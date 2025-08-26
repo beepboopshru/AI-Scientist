@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import { Lightbulb, Calculator, LineChart, Waypoints } from 'lucide-react';
+import { Lightbulb, Calculator, Beaker, Waypoints } from 'lucide-react';
 
 const AIScientistPage = () => {
     const [generationMode, setGenerationMode] = useState('scrape');
     const [currentHypothesis, setCurrentHypothesis] = useState('');
     const [currentEquation, setCurrentEquation] = useState<{name: string, formula: string} | null>(null);
-    const [simulationResult, setSimulationResult] = useState('');
+    const [suggestedExperiments, setSuggestedExperiments] = useState<any[]>([]);
     const [currentDomain, setCurrentDomain] = useState('');
     
     const [arxivKeyword, setArxivKeyword] = useState('');
@@ -16,12 +16,12 @@ const AIScientistPage = () => {
 
     const [hypothesisOutput, setHypothesisOutput] = useState('');
     const [regressionOutput, setRegressionOutput] = useState('');
-    const [simulationOutput, setSimulationOutput] = useState('');
+    const [experimentOutput, setExperimentOutput] = useState('');
     const [graphOutput, setGraphOutput] = useState('');
 
     const [isGenerating, setIsGenerating] = useState(false);
     const [isRegressing, setIsRegressing] = useState(false);
-    const [isSimulating, setIsSimulating] = useState(false);
+    const [isSuggesting, setIsSuggesting] = useState(false);
     const [isUpdatingGraph, setIsUpdatingGraph] = useState(false);
 
     const [step2Enabled, setStep2Enabled] = useState(false);
@@ -72,7 +72,6 @@ const AIScientistPage = () => {
             .attr("stroke", "#fff").attr("stroke-width", "1.5px").style("cursor", "pointer")
             .call(d3.drag<any, any>()
                 .on("start", dragstarted)
-                .on("drag", dragged)
                 .on("end", dragended));
 
         const labels = svg.append("g").attr("class", "labels").selectAll("text").data(nodes.current).enter().append("text")
@@ -120,11 +119,11 @@ const AIScientistPage = () => {
         setStep4Enabled(false);
         setHypothesisOutput('');
         setRegressionOutput('');
-        setSimulationOutput('');
+        setExperimentOutput('');
         setGraphOutput('');
         setCurrentHypothesis('');
         setCurrentEquation(null);
-        setSimulationResult('');
+        setSuggestedExperiments([]);
         setCurrentDomain('');
     };
 
@@ -145,6 +144,7 @@ const AIScientistPage = () => {
         if (generationMode === 'scrape') {
             const keyword = arxivKeyword.toLowerCase() || 'default';
             hypothesisText = scrapedHypotheses[keyword] || scrapedHypotheses['default'];
+            setCurrentHypothesis(hypothesisText);
             initialMessage = `> Simulating arXiv scrape for "${keyword}"...\n\n> Hypothesis Found:\n> ${hypothesisText}`;
         } else {
             hypothesisText = userHypothesis;
@@ -153,6 +153,7 @@ const AIScientistPage = () => {
                 setIsGenerating(false);
                 return;
             }
+            setCurrentHypothesis(hypothesisText);
             initialMessage = `> Processing user hypothesis:\n> ${hypothesisText}`;
         }
         
@@ -192,19 +193,18 @@ const AIScientistPage = () => {
         }, 2000);
     };
 
-    const handleRunSimulation = () => {
-        setIsSimulating(true);
-        const simulationResults: { [key: string]: string } = {
-            classical_mechanics: "Simulation successful. The equation F = m * a accurately predicts object motion. Reward signal is high (0.98).",
-            electromagnetism: "Simulation successful. The equation for Coulomb's Law correctly models electrostatic forces. Reward signal is high (0.97).",
-            thermodynamics: "Simulation successful. The Ideal Gas Law holds true under simulated conditions. Reward signal is high (0.99)."
-        };
+    const handleSuggestExperiments = () => {
+        setIsSuggesting(true);
+        const experiments = [
+            { name: "Experiment 1", description: "Vary mass while keeping force constant and measure acceleration." },
+            { name: "Experiment 2", description: "Vary force while keeping mass constant and measure acceleration." },
+        ];
 
         setTimeout(() => {
-            const result = simulationResults[currentDomain];
-            setSimulationResult(result);
-            typeWriter(setSimulationOutput, `> Simulation Result:\n> ${result}`, () => {
-                setIsSimulating(false);
+            setSuggestedExperiments(experiments);
+            const resultText = experiments.map(e => `* ${e.name}:\n  ${e.description}`).join('\n');
+            typeWriter(setExperimentOutput, `> Suggested Experiments:\n${resultText}`, () => {
+                setIsSuggesting(false);
                 setStep4Enabled(true);
             });
         }, 2500);
@@ -367,13 +367,13 @@ const AIScientistPage = () => {
                     <div className={`step-card p-6 ${!step3Enabled && 'opacity-50'}`}>
                          <div className="step-header flex items-center pb-4 mb-4">
                             <div className="step-number">3</div>
-                            <h2 className="text-xl font-bold ml-4">Simulation & Validation</h2>
+                            <h2 className="text-xl font-bold ml-4">Suggest Experiments</h2>
                         </div>
-                        <p className="text-gray-600 mb-4 text-sm">The equation is run through high-fidelity simulations and checked against observational data.</p>
-                         <button onClick={handleRunSimulation} disabled={!step3Enabled || isSimulating} className="mt-auto w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-md btn hover:bg-blue-600 disabled:bg-blue-300 flex items-center justify-center gap-2">
-                            <LineChart size={18} />Run Simulation
+                        <p className="text-gray-600 mb-4 text-sm">The AI proposes experiments to validate the newly discovered equation.</p>
+                         <button onClick={handleSuggestExperiments} disabled={!step3Enabled || isSuggesting} className="mt-auto w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-md btn hover:bg-blue-600 disabled:bg-blue-300 flex items-center justify-center gap-2">
+                            <Beaker size={18} />Suggest Experiments
                         </button>
-                        {renderOutputBox(simulationOutput, isSimulating)}
+                        {renderOutputBox(experimentOutput, isSuggesting)}
                     </div>
 
                     {/* Step 4 */}
@@ -382,7 +382,7 @@ const AIScientistPage = () => {
                             <div className="step-number">4</div>
                             <h2 className="text-xl font-bold ml-4">Knowledge Graph Update</h2>
                         </div>
-                        <p className="text-gray-600 mb-4 text-sm">The validated law is integrated into the AI's core knowledge graph, refining future hypotheses.</p>
+                        <p className="text-gray-600 mb-4 text-sm">A validated law is integrated into the AI's core knowledge, refining future hypotheses.</p>
                          <button onClick={handleUpdateGraph} disabled={!step4Enabled || isUpdatingGraph} className="mt-auto w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-md btn hover:bg-blue-600 disabled:bg-blue-300 flex items-center justify-center gap-2">
                             <Waypoints size={18} />Update Knowledge
                         </button>
