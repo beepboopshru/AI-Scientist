@@ -1,21 +1,52 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { GenerateScientificHypothesisOutput } from '@/ai/flows/generate-scientific-hypothesis';
 import type { DeriveEquationOutput } from '@/ai/flows/derive-equation-from-hypothesis';
+import type { SuggestNextExperimentOutput } from '@/ai/flows/suggest-next-experiment';
+import { handleSuggestExperiment } from '@/app/actions';
 import { AppHeader } from '@/components/app-header';
 import { HypothesisForm } from '@/components/hypothesis-form';
 import { EquationForm } from '@/components/equation-form';
 import { ResultsDisplay } from '@/components/results-display';
+import { SuggestedExperiments } from '@/components/suggested-experiments';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Lightbulb, TestTube, FunctionSquare } from 'lucide-react';
+import { Lightbulb, TestTube, FunctionSquare, Beaker } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const [hypothesis, setHypothesis] = useState<GenerateScientificHypothesisOutput | null>(null);
   const [equation, setEquation] = useState<DeriveEquationOutput | null>(null);
+  const [experiments, setExperiments] = useState<SuggestNextExperimentOutput | null>(null);
   const [isGeneratingHypothesis, setIsGeneratingHypothesis] = useState(false);
   const [isDerivingEquation, setIsDerivingEquation] = useState(false);
+  const [isSuggestingExperiments, setIsSuggestingExperiments] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (hypothesis && equation) {
+      const suggest = async () => {
+        setIsSuggestingExperiments(true);
+        setExperiments(null);
+        const result = await handleSuggestExperiment({
+          hypothesis: hypothesis.hypothesis,
+          equation: equation.equation,
+        });
+        if (result.error) {
+          toast({
+            variant: 'destructive',
+            title: 'Error suggesting experiments',
+            description: result.error,
+          });
+        } else if (result.success) {
+          setExperiments(result.success);
+        }
+        setIsSuggestingExperiments(false);
+      };
+      suggest();
+    }
+  }, [hypothesis, equation, toast]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -46,6 +77,7 @@ export default function Home() {
                 <HypothesisForm
                   setHypothesis={setHypothesis}
                   setEquation={setEquation}
+                  setExperiments={setExperiments}
                   isGenerating={isGeneratingHypothesis}
                   setIsGenerating={setIsGeneratingHypothesis}
                 />
@@ -67,6 +99,7 @@ export default function Home() {
                   <EquationForm
                     hypothesis={hypothesis.hypothesis}
                     setEquation={setEquation}
+                    setExperiments={setExperiments}
                     isDeriving={isDerivingEquation}
                     setIsDeriving={setIsDerivingEquation}
                   />
@@ -128,6 +161,36 @@ export default function Home() {
                 </CardContent>
               </Card>
             )}
+            
+            {(equation || isSuggestingExperiments) && (
+                 <Card>
+                 <CardHeader>
+                   <CardTitle className="flex items-center gap-3">
+                     <Beaker className="w-6 h-6 text-primary" />
+                     <span>Step 3: Suggested Next Experiments</span>
+                   </CardTitle>
+                 </CardHeader>
+                 <CardContent className="min-h-[200px]">
+                   {isSuggestingExperiments ? (
+                     <div className="space-y-4">
+                       <Skeleton className="h-8 w-3/4" />
+                       <Skeleton className="h-4 w-full" />
+                       <Skeleton className="h-4 w-5/6" />
+                        <Skeleton className="h-8 w-3/4 mt-4" />
+                       <Skeleton className="h-4 w-full" />
+                       <Skeleton className="h-4 w-5/6" />
+                     </div>
+                   ) : experiments ? (
+                     <SuggestedExperiments {...experiments} />
+                   ) : (
+                     <div className="flex items-center justify-center h-full">
+                         <p className="text-muted-foreground">Suggested experiments to validate your findings will appear here.</p>
+                     </div>
+                   )}
+                 </CardContent>
+               </Card>
+            )}
+
           </div>
         </div>
       </main>

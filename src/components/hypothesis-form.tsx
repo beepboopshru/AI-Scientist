@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { handleGenerateHypothesis } from '@/app/actions';
 import type { GenerateScientificHypothesisOutput } from '@/ai/flows/generate-scientific-hypothesis';
 import type { DeriveEquationOutput } from '@/ai/flows/derive-equation-from-hypothesis';
+import type { SuggestNextExperimentOutput } from '@/ai/flows/suggest-next-experiment';
 import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
@@ -32,11 +33,12 @@ const formSchema = z.object({
 type HypothesisFormProps = {
   setHypothesis: Dispatch<SetStateAction<GenerateScientificHypothesisOutput | null>>;
   setEquation: Dispatch<SetStateAction<DeriveEquationOutput | null>>;
+  setExperiments: Dispatch<SetStateAction<SuggestNextExperimentOutput | null>>;
   isGenerating: boolean;
   setIsGenerating: Dispatch<SetStateAction<boolean>>;
 };
 
-export function HypothesisForm({ setHypothesis, setEquation, isGenerating, setIsGenerating }: HypothesisFormProps) {
+export function HypothesisForm({ setHypothesis, setEquation, setExperiments, isGenerating, setIsGenerating }: HypothesisFormProps) {
   const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -52,6 +54,7 @@ export function HypothesisForm({ setHypothesis, setEquation, isGenerating, setIs
     setIsGenerating(true);
     setHypothesis(null);
     setEquation(null);
+    setExperiments(null);
 
     const result = await handleGenerateHypothesis(values);
 

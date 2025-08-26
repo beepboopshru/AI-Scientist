@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { handleDeriveEquation } from '@/app/actions';
 import type { DeriveEquationOutput } from '@/ai/flows/derive-equation-from-hypothesis';
+import type { SuggestNextExperimentOutput } from '@/ai/flows/suggest-next-experiment';
 import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
@@ -22,11 +23,12 @@ const formSchema = z.object({
 type EquationFormProps = {
   hypothesis: string;
   setEquation: Dispatch<SetStateAction<DeriveEquationOutput | null>>;
+  setExperiments: Dispatch<SetStateAction<SuggestNextExperimentOutput | null>>;
   isDeriving: boolean;
   setIsDeriving: Dispatch<SetStateAction<boolean>>;
 };
 
-export function EquationForm({ hypothesis, setEquation, isDeriving, setIsDeriving }: EquationFormProps) {
+export function EquationForm({ hypothesis, setEquation, setExperiments, isDeriving, setIsDeriving }: EquationFormProps) {
   const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -39,6 +41,7 @@ export function EquationForm({ hypothesis, setEquation, isDeriving, setIsDerivin
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsDeriving(true);
     setEquation(null);
+    setExperiments(null);
 
     const result = await handleDeriveEquation(values);
 
